@@ -70,11 +70,7 @@ with st.sidebar:
     )
 
     st.divider()
-    st.markdown("**Project Info**")
-    st.caption("Course: BCom / BBA / BSc DS / B.Tech")
-    st.caption("Algorithm: K-Means (k-means++)")
-    st.caption("Dataset: 200 mall customers")
-    st.caption("Multi-Store: 7 retail & tenant stores")
+
 
 
 df_raw = load_default_data()
