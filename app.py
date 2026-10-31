@@ -1,6 +1,11 @@
-"""Mall Customer Segmentation -- Streamlit Dashboard (KZ-ML-03)."""
+"""Mall Customer Segmentation -- Streamlit Dashboard (KZ-ML-03).
 
-import pathlib
+Multi-tenant edition: mall admin (owner) sees the whole mall, individual stores
+sign in and enter their own customer records manually.
+"""
+
+
+import os
 
 import numpy as np
 import pandas as pd
@@ -12,7 +17,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import streamlit as st
 
-from utils.clustering import compute_wcss, compute_silhouette, run_kmeans, prepare_features
+from utils import auth, db, mailer, ui
+from utils.clustering import (
+    compute_wcss,
+    compute_silhouette,
+    run_kmeans,
+    prepare_features,
+    max_valid_k,
+)
 from utils.profiles import build_profiles, FALLBACK_COLORS
 from utils.stores import (
     STORE_METADATA,
@@ -27,8 +39,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-DATA_PATH = pathlib.Path(__file__).parent / "data" / "Mall_Customers.csv"
-
 INCOME_COL = "Annual Income (k$)"
 SCORE_COL = "Spending Score (1-100)"
 AGE_COL = "Age"
@@ -36,11 +46,65 @@ GENDER_COL = "Gender"
 STORE_COL = "Store Visited"
 CAT_COL = "Store Category"
 
+ADMIN_PAGES = [
+    "Data Overview",
+    "Exploratory Analysis",
+    "Optimal K",
+    "Clustering",
+    "Segment Profiles",
+    "Store Analytics",
+    "Store Management",
+    "Upload Your Data",
+]
 
-@st.cache_data
-def load_default_data() -> pd.DataFrame:
-    df = pd.read_csv(DATA_PATH)
-    return assign_stores_if_missing(df)
+STORE_PAGES = [
+    "My Data Entry",
+    "Data Overview",
+    "Exploratory Analysis",
+    "Optimal K",
+    "Clustering",
+    "Segment Profiles",
+    "Store Analytics",
+]
+
+# Colour per store for charts, falling back to the tenant metadata.
+def store_color(name: str, fallback: str = "#7C3AED") -> str:
+    return STORE_METADATA.get(name, {}).get("color", fallback)
+
+
+def store_icon(name: str, fallback: str = "🛍️") -> str:
+    return STORE_METADATA.get(name, {}).get("icon", fallback)
+
+
+def _elbow_k(k_values: list[int], wcss: list[float]) -> int:
+    """Pick the elbow as the k with the largest drop-off in marginal WCSS gain."""
+    if len(k_values) < 3:
+        return max(2, int(k_values[0])) if k_values else 2
+    drops = [wcss[i] - wcss[i + 1] for i in range(len(wcss) - 1)]
+    # k_values[0] is the base; the elbow sits where the gain curve bends most.
+    elbow_idx = int(np.argmax(drops))
+    return int(k_values[min(elbow_idx + 1, len(k_values) - 1)])
+
+
+
+@st.cache_resource
+def bootstrap() -> bool:
+    """Create tables and seed demo data once per process."""
+    db.init_db()
+    db.seed_initial_data()
+    return True
+
+
+@st.cache_data(ttl=5)
+def load_mall_data() -> pd.DataFrame:
+    """Entire mall, read live from the database (all stores)."""
+    return db.load_customers_df()
+
+
+@st.cache_data(ttl=5)
+def load_store_data(store_id: int) -> pd.DataFrame:
+    """A single tenant's shoppers, read live from the database."""
+    return db.load_customers_df(store_id=store_id)
 
 
 def section_header(title: str, icon: str = "") -> None:
@@ -49,36 +113,243 @@ def section_header(title: str, icon: str = "") -> None:
     st.markdown("---")
 
 
-# Sidebar
+bootstrap()
+ui.inject_css()
+
+
+# ─── Authentication gate ─────────────────────────────────────────────────────
+def do_logout() -> None:
+    for key in ("token", "role", "store_id", "email", "display_name"):
+        st.session_state.pop(key, None)
+    st.rerun()
+
+
+def render_login() -> None:
+    ui.auth_css()
+
+    try:
+        _stores = len(db.store_overview())
+        _shoppers = len(db.load_customers_df())
+    except Exception:
+        _stores, _shoppers = 0, 0
+
+    left, right = st.columns([1.25, 1], gap="large")
+
+    with left:
+        ui.auth_showcase(
+            stats=[
+                (f"{_stores}", "Tenant stores"),
+                (f"{_shoppers}", "Shoppers"),
+                ("5", "Segments"),
+            ]
+        )
+
+    with right:
+        st.write("")
+        mode = st.segmented_control(
+            "Sign in as",
+            ["Mall owner", "Store", "Register"],
+            default="Mall owner",
+            label_visibility="collapsed",
+        )
+
+        if mode == "Mall owner":
+            with st.form("admin_login"):
+                ui.auth_card_head("Mall owner sign-in", "Full access to every store")
+                email = st.text_input("Email", placeholder="you@company.com")
+                password = st.text_input(
+                    "Password", type="password", placeholder="Your password"
+                )
+                if st.form_submit_button("Sign in", width="stretch"):
+                    if auth.check_admin(email, password):
+                        st.session_state.token = auth.create_token(
+                            auth.ADMIN_EMAIL, "admin", "Mall Owner"
+                        )
+                        st.session_state.role = "admin"
+                        st.session_state.email = auth.ADMIN_EMAIL
+                        st.session_state.display_name = "Mall Owner"
+                        st.rerun()
+                    else:
+                        st.error("Invalid admin credentials.")
+            ui.auth_foot("Owner accounts are provisioned by the deployment.")
+
+        elif mode == "Store":
+            with st.form("store_login"):
+                ui.auth_card_head("Store sign-in", "Analytics for your own shoppers")
+                email = st.text_input("Email", placeholder="store@example.com")
+                password = st.text_input(
+                    "Password", type="password", placeholder="Your password"
+                )
+                if st.form_submit_button("Sign in", width="stretch"):
+                    store = db.get_store_by_email(email)
+                    if store is None or not auth.verify_password(
+                        password, store.get("password_hash")
+                    ):
+                        st.error("Invalid email or password.")
+                    elif store["status"] != "approved":
+                        st.warning(
+                            f"Your store account is **{store['status']}**. "
+                            "Please wait for the mall admin to approve it."
+                        )
+                    else:
+                        st.session_state.token = auth.create_token(
+                            store["email"], "store", store["name"]
+                        )
+                        st.session_state.role = "store"
+                        st.session_state.store_id = store["id"]
+                        st.session_state.email = store["email"]
+                        st.session_state.display_name = store["name"]
+                        st.rerun()
+            ui.auth_foot("Forgot your password? Ask the mall owner to reset it.")
+
+        else:
+            st.markdown(
+                "<h5 style=\"font-family:'Fraunces',serif;color:#fff;margin:0 0 .2rem\">"
+                "Register your store</h5>"
+                "<div style='color:#A79FC7;font-size:.82rem;margin-bottom:1rem'>"
+                "The mall owner reviews and approves your request.</div>",
+                unsafe_allow_html=True,
+            )
+            with st.form("store_register"):
+                name = st.text_input("Store name", placeholder="e.g. Nike")
+                email = st.text_input("Contact email", placeholder="store@example.com")
+                category = st.text_input(
+                    "Category", value="General", placeholder="e.g. Fashion"
+                )
+                password = st.text_input(
+                    "Choose a password", type="password", placeholder="Min. 6 characters"
+                )
+                confirm = st.text_input(
+                    "Confirm password", type="password", placeholder="Repeat password"
+                )
+                if st.form_submit_button("Submit registration", width="stretch"):
+                    if not name.strip() or not email.strip() or not password:
+                        st.error("Store name, email, and password are required.")
+                    elif password != confirm:
+                        st.error("Passwords do not match.")
+                    elif len(password) < 6:
+                        st.error("Password must be at least 6 characters.")
+                    elif db.get_store_by_name(name) or db.get_store_by_email(email):
+                        st.error("A store with that name or email already exists.")
+                    else:
+                        created = db.create_store(
+                            name=name,
+                            email=email,
+                            category=category,
+                            icon="🛍️",
+                            color="#7C3AED",
+                            password=password,
+                            status="pending",
+                            created_by="self",
+                        )
+                        ok, _ = mailer.notify_admin_new_store(name, email)
+                        st.success(
+                            f"Registration submitted for **{created['name']}**. "
+                            "The mall admin will review it shortly."
+                        )
+                        if not ok:
+                            st.caption(
+                                "Note: the admin notification email could not be sent, "
+                                "but the request is recorded."
+                            )
+
+        if os.getenv("SHOW_DEMO_CREDENTIALS", "").strip().lower() in ("1", "true", "yes"):
+            db.ensure_demo_stores()
+            _rows = []
+            if auth.ADMIN_EMAIL and auth.ADMIN_PASSWORD:
+                _rows.append(
+                    ("Mall owner", "Full mall access", auth.ADMIN_EMAIL, auth.ADMIN_PASSWORD)
+                )
+            for _spec in db.DEMO_STORES:
+                _rows.append(
+                    (
+                        "Store",
+                        f"{_spec['category']} · own data only",
+                        _spec["email"],
+                        _spec["password"],
+                    )
+                )
+            ui.auth_demo_panel(_rows)
+
+
+if not st.session_state.get("token"):
+    render_login()
+    st.stop()
+
+# Validate the token on every run.
+_payload = auth.decode_token(st.session_state["token"])
+if not _payload:
+    do_logout()
+
+is_admin = st.session_state.get("role") == "admin"
+is_store = st.session_state.get("role") == "store"
+
+if is_store:
+    store_row = db.get_store(st.session_state["store_id"])
+    if store_row is None or store_row["status"] != "approved":
+        st.warning("Your store access is no longer active. Please contact the mall admin.")
+        if st.button("Log out"):
+            do_logout()
+        st.stop()
+
+
+# ─── Sidebar ─────────────────────────────────────────────────────────────────
 with st.sidebar:
+    st.markdown(
+        "<div class='mz-kicker' style='color:#C4B5FD;font:600 .68rem/1 Inter,sans-serif;"
+        "letter-spacing:.22em;text-transform:uppercase'>KZ-ML-03</div>",
+        unsafe_allow_html=True,
+    )
     st.title("Mall Segment")
-    st.caption("Mall Customer Segmentation & Tenant Analytics")
+    if is_admin:
+        st.markdown(
+            "<span class='mz-pill' style='color:#DDD6FE;background:rgba(167,139,250,.18);"
+            "border-color:rgba(167,139,250,.4)'><i></i>Mall Owner · full view</span>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"<span class='mz-pill' style='color:#DDD6FE;background:rgba(167,139,250,.18);"
+            f"border-color:rgba(167,139,250,.4)'><i></i>"
+            f"{st.session_state.get('display_name', 'Store')} · store view</span>",
+            unsafe_allow_html=True,
+        )
     st.divider()
 
-    nav = st.radio(
-        "Navigate",
-        [
-            "Data Overview",
-            "Exploratory Analysis",
-            "Optimal K",
-            "Clustering",
-            "Segment Profiles",
-            "Store Analytics",
-            "Upload Your Data",
-        ],
-        label_visibility="collapsed",
+    nav = st.radio("Navigate", ADMIN_PAGES if is_admin else STORE_PAGES, label_visibility="collapsed")
+    st.divider()
+    st.caption(f"Signed in as **{st.session_state.get('email', '')}**")
+    if st.button("Log out", width="stretch"):
+        do_logout()
+    st.divider()
+
+
+# ─── Data scope ──────────────────────────────────────────────────────────────
+if is_admin:
+    df_raw = load_mall_data()
+    scope_label = "Overall Mall"
+else:
+    df_raw = load_store_data(st.session_state["store_id"])
+    scope_label = st.session_state.get("display_name", "My Store")
+
+
+def no_data_notice() -> None:
+    st.info(
+        "No customer records yet. Head to **My Data Entry** to add your first shoppers."
     )
 
-    st.divider()
 
-
-
-df_raw = load_default_data()
+# Analytics pages need data; entry and management pages do not.
+if df_raw.empty and nav not in ("My Data Entry", "Store Management", "Upload Your Data"):
+    st.title(scope_label)
+    no_data_notice()
+    st.stop()
 
 
 # ─── Page 1: Data Overview ───────────────────────────────────────────────────
 if nav == "Data Overview":
     st.title("Mall Customer Segmentation")
+    st.caption(f"Viewing: **{scope_label}**")
     st.markdown(
         "An unsupervised K-Means clustering tool that groups mall customers by "
         "**Annual Income** and **Spending Score**, analyzes tenant/store-level behavior, "
@@ -173,12 +444,27 @@ elif nav == "Optimal K":
     section_header("Finding the Optimal Number of Clusters (k)", "🎯")
 
     X_raw, X_fit, _ = prepare_features(df_raw, [INCOME_COL, SCORE_COL])
+    n_samples = len(X_fit)
+
+    if n_samples < 3:
+        st.warning("At least 3 customer records are needed to evaluate cluster counts.")
+        st.stop()
+
+    kmax = max_valid_k(n_samples)
 
     with st.spinner("Computing WCSS and Silhouette scores..."):
-        k_range = list(range(1, 11))
+        k_range = list(range(1, kmax + 1))
         wcss = compute_wcss(X_fit, k_range)
-        sil_range = list(range(2, 11))
+        sil_range = list(range(2, kmax + 1))
         sil_scores = compute_silhouette(X_fit, sil_range)
+
+    elbow_k = _elbow_k(k_range, wcss)
+    if sil_scores:
+        best_k = sil_range[int(np.argmax(sil_scores))]
+        best_sil = max(sil_scores)
+    else:
+        best_k = elbow_k
+        best_sil = float("nan")
 
     c1, c2 = st.columns(2)
 
@@ -189,8 +475,8 @@ elif nav == "Optimal K":
             marker=dict(size=8, color="#e74c3c"),
             line=dict(color="#e74c3c", width=2),
         ))
-        fig.add_vline(x=5, line_dash="dash", line_color="#3498db",
-                      annotation_text="Elbow k=5", annotation_position="top right")
+        fig.add_vline(x=elbow_k, line_dash="dash", line_color="#3498db",
+                      annotation_text=f"Elbow k={elbow_k}", annotation_position="top right")
         fig.update_layout(
             title="Elbow Curve (WCSS)",
             xaxis_title="Number of Clusters (k)",
@@ -200,8 +486,6 @@ elif nav == "Optimal K":
         st.plotly_chart(fig, width="stretch")
 
     with c2:
-        best_k_idx = int(np.argmax(sil_scores))
-        best_k = sil_range[best_k_idx]
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(
             x=sil_range, y=sil_scores, mode="lines+markers",
@@ -219,26 +503,46 @@ elif nav == "Optimal K":
         st.plotly_chart(fig2, width="stretch")
 
     st.info(
-        f"**Conclusion:** The Elbow curve bends at **k = 5**, and the Silhouette Score "
-        f"peaks at **k = {best_k}**. Both methods agree -- use **k = 5** for segmentation."
+        f"**Conclusion:** The Silhouette Score peaks at **k = {best_k}** and the elbow "
+        f"curve bends around **k = {elbow_k}**. Use **k = {best_k}** for segmentation."
     )
 
     col_a, col_b = st.columns(2)
-    col_a.metric("Recommended k (Elbow)", 5)
-    col_b.metric("Best Silhouette k", best_k, f"{max(sil_scores):.3f}")
+    col_a.metric("Elbow k", elbow_k)
+    col_b.metric(
+        "Best Silhouette k",
+        best_k,
+        None if np.isnan(best_sil) else f"{best_sil:.3f}",
+    )
+    st.caption(f"Evaluated on {n_samples} customer records (max k = {kmax}).")
 
 
 # ─── Page 4: Clustering ──────────────────────────────────────────────────────
 elif nav == "Clustering":
     section_header("K-Means Clustering", "🧩")
 
+    if len(df_raw) < 3:
+        st.warning("Add at least 3 customer records before running clustering.")
+        st.stop()
+
+    _kmax = max_valid_k(len(df_raw))
+
     col_ctrl1, col_ctrl2 = st.columns([1, 1])
     with col_ctrl1:
-        k = st.slider("Select number of clusters (k)", min_value=2, max_value=10, value=5)
+        if _kmax < 3:
+            k = 2
+            st.info(f"Only {len(df_raw)} records — clustering with k = 2.")
+        else:
+            k = st.slider(
+                "Select number of clusters (k)",
+                min_value=2,
+                max_value=_kmax,
+                value=min(5, _kmax),
+            )
     with col_ctrl2:
         store_opts = ["🏢 All Stores (Overall Mall)"]
         if STORE_COL in df_raw.columns:
-            store_opts += [f"{STORE_METADATA.get(s, {}).get('icon', '🛍️')} {s}" for s in sorted(df_raw[STORE_COL].dropna().unique())]
+            store_opts += [f"{store_icon(s)} {s}" for s in sorted(df_raw[STORE_COL].dropna().unique())]
         selected_store_filter = st.selectbox("Store Filter (Highlight or filter by store)", store_opts)
 
     X_raw, X_fit, _ = prepare_features(df_raw, [INCOME_COL, SCORE_COL])
@@ -304,7 +608,7 @@ elif nav == "Segment Profiles":
     section_header("Segment Profiles & Marketing Strategies", "👥")
 
     X_raw, X_fit, _ = prepare_features(df_raw, [INCOME_COL, SCORE_COL])
-    labels, centers, _ = run_kmeans(X_fit, 5)
+    labels, centers, _ = run_kmeans(X_fit, min(5, max_valid_k(len(X_fit))))
     df_seg, profile_df = build_profiles(df_raw, labels, centers)
 
     for _, row in profile_df.iterrows():
@@ -374,15 +678,24 @@ elif nav == "Store Analytics":
 
     # Fit k=5 baseline clustering to have segments attached
     X_raw, X_fit, _ = prepare_features(df_raw, [INCOME_COL, SCORE_COL])
-    labels, centers, _ = run_kmeans(X_fit, 5)
+    labels, centers, _ = run_kmeans(X_fit, min(5, max_valid_k(len(X_fit))))
     df_seg, profile_df = build_profiles(df_raw, labels, centers)
 
     color_map = {row["Segment"]: row["Color"] for _, row in profile_df.iterrows()}
 
-    # Store selector
-    store_options = ["🏢 All Stores (Overall Mall View)"] + [
-        f"{STORE_METADATA.get(s, {}).get('icon', '🛍️')} {s}" for s in STORE_NAMES if s in df_seg[STORE_COL].values
-    ]
+    # Store selector — admin can browse every tenant, a store sees only itself.
+    if is_admin:
+        store_options = ["🏢 All Stores (Overall Mall View)"] + [
+            f"{store_icon(s)} {s}" for s in STORE_NAMES if s in df_seg[STORE_COL].values
+        ]
+        extra_stores = [
+            f"{store_icon(s)} {s}"
+            for s in sorted(df_seg[STORE_COL].dropna().unique())
+            if s not in STORE_NAMES
+        ]
+        store_options += extra_stores
+    else:
+        store_options = [f"{store_icon(scope_label)} {scope_label}"]
 
     selected_store_raw = st.selectbox(
         "Select Store View",
@@ -531,7 +844,15 @@ elif nav == "Store Analytics":
         # Extract clean store name
         curr_store = selected_store_raw.split(" ", 1)[1] if " " in selected_store_raw else selected_store_raw
         store_df = df_seg[df_seg[STORE_COL] == curr_store]
-        meta = STORE_METADATA.get(curr_store, {})
+        meta = dict(STORE_METADATA.get(curr_store, {}))
+        if not meta:
+            # Admin-created stores are not in the static metadata; derive from data.
+            meta = {
+                "icon": "🛍️",
+                "color": "#7C3AED",
+                "category": store_df[CAT_COL].iloc[0] if CAT_COL in store_df else "Retail",
+                "strategy": "Analyze shopper frequency and deliver personalized rewards.",
+            }
 
         st.markdown(
             f"### {meta.get('icon', '🛍️')} {curr_store} -- Store Deep-Dive Analytics"
@@ -668,7 +989,254 @@ elif nav == "Store Analytics":
         )
 
 
-# ─── Page 7: Upload Your Data ─────────────────────────────────────────────────
+# ─── Page 7: My Data Entry (store users only) ────────────────────────────────
+elif nav == "My Data Entry":
+    ui.section(
+        "Manual Data Entry",
+        f"Entering shoppers for {scope_label} — saved instantly, visible mall-wide",
+        "✍️",
+    )
+
+    my_df = db.load_customers_df(store_id=st.session_state["store_id"])
+
+    if my_df.empty:
+        ui.tiles(
+            [("Records", "0", "No shoppers yet"),
+             ("Avg Income (k$)", "—", "Awaiting data"),
+             ("Avg Spend Score", "—", "Awaiting data")],
+            accent=store_color(scope_label),
+        )
+    else:
+        ui.tiles(
+            [
+                ("Records", f"{len(my_df)}", "Saved to the mall database"),
+                ("Avg Income (k$)", f"{my_df[INCOME_COL].mean():.1f}", "Across your shoppers"),
+                ("Avg Spend Score", f"{my_df[SCORE_COL].mean():.1f}", "1–100 scale"),
+            ],
+            accent=store_color(scope_label),
+        )
+
+    ui.note(
+        "Enter each customer by hand — no spreadsheets for stores. "
+        "The mall owner sees these records in the overall-mall view."
+    )
+    st.write("")
+
+    with st.form("manual_entry", clear_on_submit=True):
+        st.markdown("##### New customer record")
+        c1, c2, c3 = st.columns(3)
+        gender = c1.selectbox("Gender", ["Female", "Male", "Other"])
+        age = c2.number_input("Age", min_value=1, max_value=120, value=30, step=1)
+        income = c3.number_input(
+            "Annual Income (k$)", min_value=0.0, max_value=500.0, value=50.0, step=1.0
+        )
+        c4, c5 = st.columns([1, 2])
+        score = c4.number_input(
+            "Spending Score (1-100)", min_value=0.0, max_value=100.0, value=50.0, step=1.0
+        )
+        submitted = c5.form_submit_button("➕ Add customer", width="stretch")
+
+        if submitted:
+            db.add_customer(
+                store_id=st.session_state["store_id"],
+                gender=gender,
+                age=age,
+                annual_income=income,
+                spending_score=score,
+                entered_by=st.session_state.get("email"),
+            )
+            st.success(f"Added 1 customer for **{scope_label}**.")
+            st.rerun()
+
+    st.write("")
+    ui.section("Your Customer Records", f"{len(my_df)} record(s) in {scope_label}", "📋")
+
+    if my_df.empty:
+        st.info("No records yet. Add your first customer above.")
+    else:
+        st.dataframe(my_df, width="stretch", height=340)
+
+        st.markdown("##### Remove a record")
+        options = {
+            f"#{int(r['CustomerID'])} · {r[GENDER_COL]}, {int(r[AGE_COL])}y, "
+            f"${r[INCOME_COL]:.0f}k, score {r[SCORE_COL]:.0f}": int(r["CustomerID"])
+            for _, r in my_df.iterrows()
+        }
+        d1, d2 = st.columns([3, 1], vertical_alignment="bottom")
+        pick = d1.selectbox("Select a record to remove", list(options.keys()))
+        if d2.button("🗑️ Delete", width="stretch"):
+            if db.delete_customer(options[pick], store_id=st.session_state["store_id"]):
+                st.success("Record deleted.")
+                st.rerun()
+            else:
+                st.error("Could not delete that record.")
+
+
+# ─── Page 8: Store Management (admin only) ───────────────────────────────────
+elif nav == "Store Management":
+    if not is_admin:
+        st.error("Only the mall admin can manage stores.")
+        st.stop()
+
+    ui.section(
+        "Store Management",
+        "Approve registrations, create stores, share credentials",
+        "🗂️",
+    )
+
+    pending = db.list_stores(status="pending")
+    overview = db.store_overview()
+
+    ui.tiles(
+        [
+            ("Stores", f"{len(overview)}", "Tenants in the mall"),
+            ("Pending", f"{len(pending)}", "Awaiting your approval"),
+            (
+                "Shoppers",
+                f"{sum(r['shoppers'] for r in overview)}",
+                "Records across all stores",
+            ),
+        ]
+    )
+
+    st.write("")
+    ui.section("Pending Approvals", f"{len(pending)} request(s) waiting", "⏳")
+
+    if not pending:
+        st.success("No pending store registrations.")
+    else:
+        for i, st_row in enumerate(pending):
+            ui.store_card(
+                icon=st_row.get("icon") or "🛍️",
+                name=st_row["name"],
+                meta=f"{st_row['email']} · {st_row['category']} · {st_row['created_at']}",
+                status="pending",
+                count=0,
+                color=st_row.get("color") or ui.ACCENT,
+                count_label="shoppers",
+                delay=i * 60,
+            )
+            a1, a2, _ = st.columns([1, 1, 4])
+            if a1.button("✅ Approve", key=f"appr_{st_row['id']}", width="stretch"):
+                db.set_store_status(st_row["id"], "approved")
+                mailer.notify_store_approved(st_row["email"], st_row["name"])
+                st.rerun()
+            if a2.button("❌ Reject", key=f"rej_{st_row['id']}", width="stretch"):
+                db.set_store_status(st_row["id"], "rejected")
+                st.rerun()
+            st.write("")
+
+    st.write("")
+    ui.section("Create a Store", "Credentials are emailed to the store", "➕")
+    ui.note(
+        "The owner creates the store and the login credentials go straight to the "
+        "store's inbox. The account is approved immediately."
+    )
+    st.write("")
+
+    with st.form("admin_create_store", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        new_name = c1.text_input("Store name", placeholder="e.g. Nike")
+        new_email = c2.text_input("Store login email", placeholder="store@example.com")
+        c3, c4 = st.columns(2)
+        new_cat = c3.text_input("Category", value="General")
+        new_color = c4.color_picker("Chart colour", value="#7C3AED")
+        if st.form_submit_button("Create store & email credentials", width="stretch"):
+            if not new_name.strip() or not new_email.strip():
+                st.error("Store name and login email are required.")
+            elif db.get_store_by_name(new_name) or db.get_store_by_email(new_email):
+                st.error("A store with that name or email already exists.")
+            else:
+                created = db.create_store(
+                    name=new_name,
+                    email=new_email,
+                    category=new_cat,
+                    icon="🛍️",
+                    color=new_color,
+                    status="approved",
+                    created_by="admin",
+                )
+                ok, msg = mailer.send_store_credentials(
+                    created["email"], created["name"], created["password"]
+                )
+                st.success(f"Store **{created['name']}** created and approved.")
+                if ok:
+                    st.info("Credentials emailed to the store.")
+                else:
+                    st.warning(
+                        "Email could not be sent. Share these credentials manually:"
+                    )
+                    st.code(
+                        f"Email: {created['email']}\nPassword: {created['password']}"
+                    )
+
+    st.write("")
+    ui.section("All Stores", f"{len(overview)} tenant(s) in the mall", "🏬")
+
+    if not overview:
+        st.info("No stores yet. Create the first one above.")
+    else:
+        for i, r in enumerate(overview):
+            ui.store_card(
+                icon=r.get("icon") or "🛍️",
+                name=r["name"],
+                meta=f"{r['email']} · {r['category']} · added by {r['created_by']}",
+                status=r["status"],
+                count=r["shoppers"],
+                color=r.get("color") or ui.ACCENT,
+                delay=i * 45,
+            )
+            st.write("")
+
+        st.write("")
+        ui.section("Manage a Store", "Enable, disable, reset or delete", "🛠️")
+
+        name_to_id = {r["name"]: r["id"] for r in overview}
+        pick_name = st.selectbox("Select store", list(name_to_id.keys()))
+        pick_id = name_to_id[pick_name]
+        pick_row = next(r for r in overview if r["id"] == pick_id)
+
+        st.markdown(
+            f"<div style='margin:.3rem 0 .8rem'>"
+            f"{ui.status_pill(pick_row['status'])}"
+            f"<span style='color:{ui.MUTED};font-size:.85rem;margin-left:.6rem'>"
+            f"{pick_row['email']} · {pick_row['shoppers']} shoppers</span></div>",
+            unsafe_allow_html=True,
+        )
+
+        b1, b2, b3, b4 = st.columns(4)
+        if b1.button("Approve / Enable", width="stretch"):
+            db.set_store_status(pick_id, "approved")
+            mailer.notify_store_approved(pick_row["email"], pick_row["name"])
+            st.rerun()
+        if b2.button("Disable", width="stretch"):
+            db.set_store_status(pick_id, "disabled")
+            st.rerun()
+        if b3.button("Reset & Email Password", width="stretch"):
+            pw = db.reset_store_password(pick_id)
+            ok, _ = mailer.send_store_credentials(
+                pick_row["email"], pick_row["name"], pw
+            )
+            st.success("Password reset." + ("" if ok else " Email failed — share manually:"))
+            if not ok:
+                st.code(f"Email: {pick_row['email']}\nPassword: {pw}")
+        if b4.button("Delete Store", width="stretch"):
+            st.session_state["confirm_delete"] = pick_id
+        if st.session_state.get("confirm_delete") == pick_id:
+            st.warning(
+                f"Delete **{pick_name}** and all {pick_row['shoppers']} of its customer records?"
+            )
+            d1, d2 = st.columns(2)
+            if d1.button("Yes, delete permanently", type="primary", width="stretch"):
+                db.delete_store(pick_id)
+                st.session_state.pop("confirm_delete", None)
+                st.rerun()
+            if d2.button("Cancel", width="stretch"):
+                st.session_state.pop("confirm_delete", None)
+                st.rerun()
+
+
+# ─── Page 9: Upload Your Data ─────────────────────────────────────────────────
 elif nav == "Upload Your Data":
     section_header("Upload & Segment Your Own Data", "📤")
 
