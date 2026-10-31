@@ -114,3 +114,4 @@ The application will be accessible at `http://localhost:8501`.
 - **Data Manipulation**: Pandas, NumPy
 - **Interactive Visualizations**: Plotly Express, Plotly Graph Objects
 - **Statistical Graphics**: Seaborn, Matplotlib
+
