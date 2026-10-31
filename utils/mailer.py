@@ -11,13 +11,25 @@ from dotenv import load_dotenv
 
 load_dotenv(pathlib.Path(__file__).resolve().parent.parent / ".env")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "")
-SMTP_PORT = int(os.getenv("SMTP_PORT") or 587)
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASS = os.getenv("SMTP_PASS", "")
-SMTP_FROM = os.getenv("SMTP_FROM") or SMTP_USER
-FROM_NAME = os.getenv("FROM_NAME", "Mall Segment")
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
+def _get_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key, "")
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and key in st.secrets:
+                val = str(st.secrets[key])
+        except Exception:
+            pass
+    return (val or default).strip()
+
+
+SMTP_HOST = _get_secret("SMTP_HOST", "")
+SMTP_PORT = int(_get_secret("SMTP_PORT", "587") or 587)
+SMTP_USER = _get_secret("SMTP_USER", "")
+SMTP_PASS = _get_secret("SMTP_PASS", "")
+SMTP_FROM = _get_secret("SMTP_FROM", "") or SMTP_USER
+FROM_NAME = _get_secret("FROM_NAME", "Mall Segment")
+ADMIN_EMAIL = _get_secret("ADMIN_EMAIL", "")
 
 
 def is_configured() -> bool:

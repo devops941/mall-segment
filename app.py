@@ -253,7 +253,13 @@ def render_login() -> None:
                                 "but the request is recorded."
                             )
 
-        if os.getenv("SHOW_DEMO_CREDENTIALS", "").strip().lower() in ("1", "true", "yes"):
+        _show_demo_str = os.getenv("SHOW_DEMO_CREDENTIALS", "")
+        if not _show_demo_str:
+            try:
+                _show_demo_str = str(st.secrets.get("SHOW_DEMO_CREDENTIALS", ""))
+            except Exception:
+                pass
+        if _show_demo_str.strip().lower() in ("1", "true", "yes"):
             db.ensure_demo_stores()
             _rows = []
             if auth.ADMIN_EMAIL and auth.ADMIN_PASSWORD:
