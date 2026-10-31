@@ -1,0 +1,201 @@
+CustomerID,Gender,Age,Annual Income (k$),Spending Score (1-100),Store Visited,Store Category
+1,Male,41,35,6,PVR Cinemas,Entertainment
+2,Female,69,101,89,Croma,Electronics & Appliances
+3,Female,28,98,19,Croma,Electronics & Appliances
+4,Female,66,31,72,H&M,Fashion & Apparel
+5,Male,25,77,91,Apple Store,Electronics
+6,Male,53,38,17,Food Court,Dining
+7,Male,55,128,39,Apple Store,Electronics
+8,Female,57,120,23,Reliance Smart,Groceries & Hypermarket
+9,Female,37,74,13,Croma,Electronics & Appliances
+10,Female,52,129,25,Croma,Electronics & Appliances
+11,Male,65,48,38,Apple Store,Electronics
+12,Female,42,23,60,Reliance Smart,Groceries & Hypermarket
+13,Female,52,128,39,Reliance Smart,Groceries & Hypermarket
+14,Male,42,40,55,Zara,Fashion & Apparel
+15,Male,46,32,19,Food Court,Dining
+16,Male,35,53,49,H&M,Fashion & Apparel
+17,Male,63,35,5,Food Court,Dining
+18,Female,35,47,60,Food Court,Dining
+19,Male,19,16,70,H&M,Fashion & Apparel
+20,Male,52,49,50,H&M,Fashion & Apparel
+21,Female,33,61,55,PVR Cinemas,Entertainment
+22,Male,58,18,1,H&M,Fashion & Apparel
+23,Male,53,119,21,PVR Cinemas,Entertainment
+24,Male,50,30,65,H&M,Fashion & Apparel
+25,Female,21,79,19,Croma,Electronics & Appliances
+26,Female,50,31,91,Food Court,Dining
+27,Male,31,39,81,Zara,Fashion & Apparel
+28,Female,38,42,53,Food Court,Dining
+29,Female,65,37,16,Reliance Smart,Groceries & Hypermarket
+30,Male,37,34,15,H&M,Fashion & Apparel
+31,Female,25,68,40,Croma,Electronics & Appliances
+32,Male,24,37,17,Food Court,Dining
+33,Male,20,56,43,Zara,Fashion & Apparel
+34,Female,34,83,39,Reliance Smart,Groceries & Hypermarket
+35,Female,50,105,6,Reliance Smart,Groceries & Hypermarket
+36,Female,65,23,94,Food Court,Dining
+37,Male,29,47,40,H&M,Fashion & Apparel
+38,Male,68,90,98,Apple Store,Electronics
+39,Female,39,37,92,Food Court,Dining
+40,Female,39,129,20,Croma,Electronics & Appliances
+41,Male,63,24,22,H&M,Fashion & Apparel
+42,Female,47,134,13,Croma,Electronics & Appliances
+43,Male,55,33,23,H&M,Fashion & Apparel
+44,Female,55,27,27,Reliance Smart,Groceries & Hypermarket
+45,Male,62,95,14,PVR Cinemas,Entertainment
+46,Female,68,29,30,Reliance Smart,Groceries & Hypermarket
+47,Male,25,20,93,Zara,Fashion & Apparel
+48,Female,44,22,4,Croma,Electronics & Appliances
+49,Female,44,19,97,H&M,Fashion & Apparel
+50,Male,51,57,53,H&M,Fashion & Apparel
+51,Female,38,85,12,Reliance Smart,Groceries & Hypermarket
+52,Female,47,29,22,Reliance Smart,Groceries & Hypermarket
+53,Female,50,16,87,PVR Cinemas,Entertainment
+54,Female,45,32,89,PVR Cinemas,Entertainment
+55,Female,64,35,73,H&M,Fashion & Apparel
+56,Female,50,65,46,Reliance Smart,Groceries & Hypermarket
+57,Male,22,127,73,Apple Store,Electronics
+58,Male,65,23,26,Food Court,Dining
+59,Male,36,65,42,Apple Store,Electronics
+60,Male,21,90,25,PVR Cinemas,Entertainment
+61,Male,52,67,38,PVR Cinemas,Entertainment
+62,Male,66,32,91,Zara,Fashion & Apparel
+63,Female,34,103,69,PVR Cinemas,Entertainment
+64,Male,61,44,38,PVR Cinemas,Entertainment
+65,Male,45,102,72,Apple Store,Electronics
+66,Female,47,57,62,Food Court,Dining
+67,Male,46,59,59,H&M,Fashion & Apparel
+68,Female,63,20,93,Food Court,Dining
+69,Male,23,15,24,H&M,Fashion & Apparel
+70,Female,52,24,17,Reliance Smart,Groceries & Hypermarket
+71,Female,58,52,47,PVR Cinemas,Entertainment
+72,Male,54,33,72,Zara,Fashion & Apparel
+73,Male,41,125,17,Apple Store,Electronics
+74,Female,46,15,93,Food Court,Dining
+75,Female,66,112,4,Croma,Electronics & Appliances
+76,Female,63,119,19,Croma,Electronics & Appliances
+77,Female,48,118,97,Food Court,Dining
+78,Male,52,65,62,Apple Store,Electronics
+79,Male,50,82,74,Zara,Fashion & Apparel
+80,Male,69,23,12,H&M,Fashion & Apparel
+81,Female,38,29,70,PVR Cinemas,Entertainment
+82,Female,49,103,93,Zara,Fashion & Apparel
+83,Male,40,32,28,Food Court,Dining
+84,Male,50,86,39,Apple Store,Electronics
+85,Male,20,117,27,PVR Cinemas,Entertainment
+86,Male,35,96,37,PVR Cinemas,Entertainment
+87,Female,42,68,47,Croma,Electronics & Appliances
+88,Female,59,48,51,PVR Cinemas,Entertainment
+89,Female,48,35,73,PVR Cinemas,Entertainment
+90,Female,20,22,4,Croma,Electronics & Appliances
+91,Male,57,116,92,Apple Store,Electronics
+92,Female,63,49,58,PVR Cinemas,Entertainment
+93,Female,41,62,59,PVR Cinemas,Entertainment
+94,Female,67,112,91,Zara,Fashion & Apparel
+95,Female,49,15,5,Reliance Smart,Groceries & Hypermarket
+96,Female,64,79,81,Zara,Fashion & Apparel
+97,Female,39,83,5,Croma,Electronics & Appliances
+98,Male,40,18,60,H&M,Fashion & Apparel
+99,Male,19,37,14,H&M,Fashion & Apparel
+100,Male,44,25,17,H&M,Fashion & Apparel
+101,Male,59,68,3,Apple Store,Electronics
+102,Female,19,51,58,PVR Cinemas,Entertainment
+103,Male,43,127,94,Apple Store,Electronics
+104,Female,34,93,85,Zara,Fashion & Apparel
+105,Female,57,31,14,Reliance Smart,Groceries & Hypermarket
+106,Male,50,29,86,Zara,Fashion & Apparel
+107,Male,26,28,26,PVR Cinemas,Entertainment
+108,Female,60,57,49,PVR Cinemas,Entertainment
+109,Male,65,126,91,Apple Store,Electronics
+110,Male,56,76,7,Apple Store,Electronics
+111,Male,46,70,67,Apple Store,Electronics
+112,Male,59,130,74,Apple Store,Electronics
+113,Female,43,50,46,Reliance Smart,Groceries & Hypermarket
+114,Female,52,60,50,Croma,Electronics & Appliances
+115,Female,67,102,95,Zara,Fashion & Apparel
+116,Female,42,25,16,Reliance Smart,Groceries & Hypermarket
+117,Female,41,36,60,Food Court,Dining
+118,Male,30,39,22,Food Court,Dining
+119,Female,24,117,83,PVR Cinemas,Entertainment
+120,Female,53,17,27,Croma,Electronics & Appliances
+121,Female,62,116,36,Reliance Smart,Groceries & Hypermarket
+122,Female,37,79,25,Reliance Smart,Groceries & Hypermarket
+123,Male,18,33,93,Zara,Fashion & Apparel
+124,Male,25,18,10,H&M,Fashion & Apparel
+125,Male,63,17,82,Zara,Fashion & Apparel
+126,Male,33,31,64,H&M,Fashion & Apparel
+127,Female,31,19,96,Food Court,Dining
+128,Female,29,72,35,Reliance Smart,Groceries & Hypermarket
+129,Male,68,20,2,Zara,Fashion & Apparel
+130,Female,40,38,25,Croma,Electronics & Appliances
+131,Male,32,19,29,PVR Cinemas,Entertainment
+132,Male,45,44,49,H&M,Fashion & Apparel
+133,Male,51,123,33,H&M,Fashion & Apparel
+134,Male,19,39,76,Zara,Fashion & Apparel
+135,Female,49,32,71,PVR Cinemas,Entertainment
+136,Male,40,105,19,PVR Cinemas,Entertainment
+137,Female,39,34,97,H&M,Fashion & Apparel
+138,Female,68,105,80,Food Court,Dining
+139,Male,42,124,75,Zara,Fashion & Apparel
+140,Female,39,98,98,Croma,Electronics & Appliances
+141,Female,39,15,80,Reliance Smart,Groceries & Hypermarket
+142,Male,66,24,69,Zara,Fashion & Apparel
+143,Female,69,120,39,Croma,Electronics & Appliances
+144,Male,59,42,50,H&M,Fashion & Apparel
+145,Male,23,15,64,Zara,Fashion & Apparel
+146,Male,32,107,9,Apple Store,Electronics
+147,Female,60,125,20,Croma,Electronics & Appliances
+148,Female,54,61,56,Food Court,Dining
+149,Male,50,85,88,Apple Store,Electronics
+150,Male,25,59,47,H&M,Fashion & Apparel
+151,Female,61,103,6,Reliance Smart,Groceries & Hypermarket
+152,Male,61,136,63,Apple Store,Electronics
+153,Male,22,30,82,Zara,Fashion & Apparel
+154,Female,56,79,71,Zara,Fashion & Apparel
+155,Female,21,32,64,Reliance Smart,Groceries & Hypermarket
+156,Male,23,27,11,Food Court,Dining
+157,Female,62,76,10,Croma,Electronics & Appliances
+158,Female,49,133,5,Reliance Smart,Groceries & Hypermarket
+159,Male,69,104,85,Apple Store,Electronics
+160,Female,47,108,98,Food Court,Dining
+161,Male,64,67,55,Food Court,Dining
+162,Female,52,97,17,Croma,Electronics & Appliances
+163,Female,57,68,49,Croma,Electronics & Appliances
+164,Female,69,67,50,Food Court,Dining
+165,Male,33,92,72,Apple Store,Electronics
+166,Female,30,34,24,Reliance Smart,Groceries & Hypermarket
+167,Male,67,93,97,Apple Store,Electronics
+168,Male,59,19,34,Food Court,Dining
+169,Male,47,29,30,H&M,Fashion & Apparel
+170,Female,36,16,62,H&M,Fashion & Apparel
+171,Female,34,38,2,Reliance Smart,Groceries & Hypermarket
+172,Male,36,75,1,Apple Store,Electronics
+173,Female,45,33,76,H&M,Fashion & Apparel
+174,Male,43,84,7,Food Court,Dining
+175,Female,54,17,32,Reliance Smart,Groceries & Hypermarket
+176,Male,43,73,78,Apple Store,Electronics
+177,Female,40,22,98,Food Court,Dining
+178,Male,26,115,64,Zara,Fashion & Apparel
+179,Female,29,80,19,Reliance Smart,Groceries & Hypermarket
+180,Male,18,35,85,Zara,Fashion & Apparel
+181,Male,18,50,62,H&M,Fashion & Apparel
+182,Male,64,93,74,Apple Store,Electronics
+183,Female,51,106,74,PVR Cinemas,Entertainment
+184,Female,49,95,72,PVR Cinemas,Entertainment
+185,Male,65,64,36,PVR Cinemas,Entertainment
+186,Female,42,71,90,H&M,Fashion & Apparel
+187,Female,57,22,35,Reliance Smart,Groceries & Hypermarket
+188,Female,62,131,94,Zara,Fashion & Apparel
+189,Female,18,119,97,Zara,Fashion & Apparel
+190,Male,33,67,39,Food Court,Dining
+191,Male,56,29,96,Zara,Fashion & Apparel
+192,Female,22,40,55,PVR Cinemas,Entertainment
+193,Female,39,131,67,PVR Cinemas,Entertainment
+194,Female,46,102,92,Zara,Fashion & Apparel
+195,Male,20,53,37,H&M,Fashion & Apparel
+196,Male,29,81,31,PVR Cinemas,Entertainment
+197,Female,43,28,34,Reliance Smart,Groceries & Hypermarket
+198,Female,33,93,78,PVR Cinemas,Entertainment
+199,Female,68,33,98,PVR Cinemas,Entertainment
+200,Female,54,66,56,PVR Cinemas,Entertainment
