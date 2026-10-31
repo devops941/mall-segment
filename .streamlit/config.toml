@@ -15,7 +15,7 @@ buttonRadius = "8px"
 showWidgetBorder = true
 showSidebarBorder = true
 linkUnderline = false
-paddingTop = "0.75rem"
+paddingTop = "2.5rem"
 paddingBottom = "2rem"
 
 primaryColor = "#7C3AED"

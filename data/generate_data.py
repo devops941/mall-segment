@@ -1,60 +1,118 @@
-"""Generate synthetic Mall_Customers.csv matching the Kaggle dataset structure with stores."""
+"""Generate realistic synthetic Mall_Customers.csv (200 records).
+
+Matches Kaggle benchmark clustering structure with correlated demographics and realistic multi-store assignments.
+"""
+
 import pathlib
-import sys
 import numpy as np
 import pandas as pd
 
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
-from utils.stores import assign_stores_if_missing
+STORE_CATEGORIES = {
+    "Apple Store": "Electronics",
+    "Zara": "Fashion & Apparel",
+    "H&M": "Fashion & Apparel",
+    "Food Court": "Dining",
+    "PVR Cinemas": "Entertainment",
+    "Croma": "Electronics & Appliances",
+    "Reliance Smart": "Groceries & Hypermarket",
+}
 
-np.random.seed(42)
-n = 200
 
-customer_ids = range(1, n + 1)
-genders = np.random.choice(["Male", "Female"], size=n, p=[0.44, 0.56])
-ages = np.random.randint(18, 70, size=n)
+def generate_dataset(n: int = 200, seed: int = 42) -> pd.DataFrame:
+    np.random.seed(seed)
+    n_per_segment = n // 5
 
-# Create realistic clusters: 5 segments
-income_spending = []
-cluster_sizes = [40, 40, 40, 40, 40]
+    records = []
 
-# Cluster 0: High income, high spending (Premium Spenders)
-for _ in range(cluster_sizes[0]):
-    income_spending.append((np.random.randint(70, 137), np.random.randint(63, 99)))
+    # 1. Premium Spenders (High Income, High Spending)
+    for _ in range(n_per_segment):
+        gender = np.random.choice(["Female", "Male"], p=[0.55, 0.45])
+        age = int(np.random.randint(24, 45))
+        income = int(np.random.randint(72, 137))
+        score = int(np.random.randint(68, 99))
+        store = np.random.choice(["Apple Store", "Zara", "PVR Cinemas"], p=[0.50, 0.40, 0.10])
+        records.append({
+            "Gender": gender,
+            "Age": age,
+            "Annual Income (k$)": income,
+            "Spending Score (1-100)": score,
+            "Store Visited": store,
+            "Store Category": STORE_CATEGORIES[store],
+        })
 
-# Cluster 1: High income, low spending (Careful Savers)
-for _ in range(cluster_sizes[1]):
-    income_spending.append((np.random.randint(68, 137), np.random.randint(1, 40)))
+    # 2. Careful Savers (High Income, Low Spending)
+    for _ in range(n_per_segment):
+        gender = np.random.choice(["Female", "Male"], p=[0.50, 0.50])
+        age = int(np.random.randint(35, 65))
+        income = int(np.random.randint(70, 137))
+        score = int(np.random.randint(6, 40))
+        store = np.random.choice(["Croma", "Reliance Smart", "Apple Store"], p=[0.55, 0.35, 0.10])
+        records.append({
+            "Gender": gender,
+            "Age": age,
+            "Annual Income (k$)": income,
+            "Spending Score (1-100)": score,
+            "Store Visited": store,
+            "Store Category": STORE_CATEGORIES[store],
+        })
 
-# Cluster 2: Average income, average spending (Standard Customers)
-for _ in range(cluster_sizes[2]):
-    income_spending.append((np.random.randint(40, 70), np.random.randint(35, 65)))
+    # 3. Standard Customers (Average Income, Average Spending)
+    for _ in range(n_per_segment):
+        gender = np.random.choice(["Female", "Male"], p=[0.55, 0.45])
+        age = int(np.random.randint(22, 58))
+        income = int(np.random.randint(42, 69))
+        score = int(np.random.randint(38, 65))
+        store = np.random.choice(["Food Court", "PVR Cinemas", "H&M", "Croma"], p=[0.35, 0.30, 0.25, 0.10])
+        records.append({
+            "Gender": gender,
+            "Age": age,
+            "Annual Income (k$)": income,
+            "Spending Score (1-100)": score,
+            "Store Visited": store,
+            "Store Category": STORE_CATEGORIES[store],
+        })
 
-# Cluster 3: Low income, high spending (Impulse Buyers)
-for _ in range(cluster_sizes[3]):
-    income_spending.append((np.random.randint(15, 40), np.random.randint(60, 99)))
+    # 4. Impulse Buyers (Low Income, High Spending)
+    for _ in range(n_per_segment):
+        gender = np.random.choice(["Female", "Male"], p=[0.60, 0.40])
+        age = int(np.random.randint(18, 33))
+        income = int(np.random.randint(15, 40))
+        score = int(np.random.randint(65, 99))
+        store = np.random.choice(["H&M", "Zara", "Food Court"], p=[0.50, 0.35, 0.15])
+        records.append({
+            "Gender": gender,
+            "Age": age,
+            "Annual Income (k$)": income,
+            "Spending Score (1-100)": score,
+            "Store Visited": store,
+            "Store Category": STORE_CATEGORIES[store],
+        })
 
-# Cluster 4: Low income, low spending (Budget Shoppers)
-for _ in range(cluster_sizes[4]):
-    income_spending.append((np.random.randint(15, 40), np.random.randint(1, 40)))
+    # 5. Budget Shoppers (Low Income, Low Spending)
+    for _ in range(n_per_segment):
+        gender = np.random.choice(["Female", "Male"], p=[0.52, 0.48])
+        age = int(np.random.randint(20, 68))
+        income = int(np.random.randint(15, 40))
+        score = int(np.random.randint(5, 42))
+        store = np.random.choice(["Reliance Smart", "Food Court", "Croma"], p=[0.60, 0.30, 0.10])
+        records.append({
+            "Gender": gender,
+            "Age": age,
+            "Annual Income (k$)": income,
+            "Spending Score (1-100)": score,
+            "Store Visited": store,
+            "Store Category": STORE_CATEGORIES[store],
+        })
 
-np.random.shuffle(income_spending)
-incomes = [x[0] for x in income_spending]
-scores = [x[1] for x in income_spending]
+    df = pd.DataFrame(records)
+    # Shuffle slightly so clusters interleave realistically
+    df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
+    df.insert(0, "CustomerID", range(1, len(df) + 1))
+    return df
 
-df = pd.DataFrame({
-    "CustomerID": customer_ids,
-    "Gender": genders,
-    "Age": ages,
-    "Annual Income (k$)": incomes,
-    "Spending Score (1-100)": scores,
-})
-
-df = assign_stores_if_missing(df, seed=42)
-
-out = pathlib.Path(__file__).parent / "Mall_Customers.csv"
-df.to_csv(out, index=False)
-print(f"Generated {len(df)} rows -> {out}")
 
 if __name__ == "__main__":
-    pass
+    df = generate_dataset(200, seed=42)
+    out_path = pathlib.Path(__file__).parent / "Mall_Customers.csv"
+    df.to_csv(out_path, index=False)
+    print(f"Generated clean {len(df)} rows -> {out_path}")
