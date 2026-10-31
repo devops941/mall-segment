@@ -58,7 +58,7 @@ ADMIN_PAGES = [
 ]
 
 STORE_PAGES = [
-    "My Data Entry",
+    "My Store Dashboard",
     "Data Overview",
     "Exploratory Analysis",
     "Optimal K",
@@ -146,21 +146,16 @@ def render_login() -> None:
 
     with right:
         st.write("")
-        mode = st.segmented_control(
-            "Sign in as",
-            ["Mall owner", "Store", "Register"],
-            default="Mall owner",
-            label_visibility="collapsed",
-        )
+        tab_owner, tab_store, tab_reg = st.tabs(["🏢 Mall Owner", "🏪 Store Tenant", "✍️ Register Store"])
 
-        if mode == "Mall owner":
+        with tab_owner:
             with st.form("admin_login"):
-                ui.auth_card_head("Mall owner sign-in", "Full access to every store")
-                email = st.text_input("Email", placeholder="you@company.com")
+                ui.auth_card_head("Mall Owner Sign-in", "Full access to every store & mall analytics")
+                email = st.text_input("Admin Email", placeholder="admin@gmail.com")
                 password = st.text_input(
-                    "Password", type="password", placeholder="Your password"
+                    "Password", type="password", placeholder="Admin password"
                 )
-                if st.form_submit_button("Sign in", width="stretch"):
+                if st.form_submit_button("Sign in as Owner", width="stretch"):
                     if auth.check_admin(email, password):
                         st.session_state.token = auth.create_token(
                             auth.ADMIN_EMAIL, "admin", "Mall Owner"
@@ -171,16 +166,16 @@ def render_login() -> None:
                         st.rerun()
                     else:
                         st.error("Invalid admin credentials.")
-            ui.auth_foot("Owner accounts are provisioned by the deployment.")
+            ui.auth_foot("Admin credentials configured via deployment secrets.")
 
-        elif mode == "Store":
+        with tab_store:
             with st.form("store_login"):
-                ui.auth_card_head("Store sign-in", "Analytics for your own shoppers")
-                email = st.text_input("Email", placeholder="store@example.com")
+                ui.auth_card_head("Store Tenant Sign-in", "Dedicated analytics for your shoppers")
+                email = st.text_input("Store Login Email", placeholder="e.g. demo.fashion@mallsegment.local")
                 password = st.text_input(
-                    "Password", type="password", placeholder="Your password"
+                    "Password", type="password", placeholder="Store password"
                 )
-                if st.form_submit_button("Sign in", width="stretch"):
+                if st.form_submit_button("Sign in as Store", width="stretch"):
                     store = db.get_store_by_email(email)
                     if store is None or not auth.verify_password(
                         password, store.get("password_hash")
@@ -200,9 +195,9 @@ def render_login() -> None:
                         st.session_state.email = store["email"]
                         st.session_state.display_name = store["name"]
                         st.rerun()
-            ui.auth_foot("Forgot your password? Ask the mall owner to reset it.")
+            ui.auth_foot("Test instantly using any demo store account below.")
 
-        else:
+        with tab_reg:
             st.markdown(
                 "<h5 style=\"font-family:'Fraunces',serif;color:#fff;margin:0 0 .2rem\">"
                 "Register your store</h5>"
@@ -211,18 +206,18 @@ def render_login() -> None:
                 unsafe_allow_html=True,
             )
             with st.form("store_register"):
-                name = st.text_input("Store name", placeholder="e.g. Nike")
-                email = st.text_input("Contact email", placeholder="store@example.com")
+                name = st.text_input("Store Name", placeholder="e.g. Nike")
+                email = st.text_input("Contact Email", placeholder="store@example.com")
                 category = st.text_input(
-                    "Category", value="General", placeholder="e.g. Fashion"
+                    "Store Category", value="General", placeholder="e.g. Fashion, Electronics"
                 )
                 password = st.text_input(
-                    "Choose a password", type="password", placeholder="Min. 6 characters"
+                    "Choose Password", type="password", placeholder="Min. 6 characters"
                 )
                 confirm = st.text_input(
-                    "Confirm password", type="password", placeholder="Repeat password"
+                    "Confirm Password", type="password", placeholder="Repeat password"
                 )
-                if st.form_submit_button("Submit registration", width="stretch"):
+                if st.form_submit_button("Submit Store Registration", width="stretch"):
                     if not name.strip() or not email.strip() or not password:
                         st.error("Store name, email, and password are required.")
                     elif password != confirm:
@@ -995,87 +990,176 @@ elif nav == "Store Analytics":
         )
 
 
-# ─── Page 7: My Data Entry (store users only) ────────────────────────────────
-elif nav == "My Data Entry":
+# ─── Page 7: My Store Dashboard & Data Entry (store users only) ─────────────
+elif nav in ("My Store Dashboard", "My Data Entry"):
+    meta = dict(STORE_METADATA.get(scope_label, {}))
+    store_cat = meta.get("category", "Retail")
+    accent_color = store_color(scope_label)
+
     ui.section(
-        "Manual Data Entry",
-        f"Entering shoppers for {scope_label} — saved instantly, visible mall-wide",
-        "✍️",
+        f"{scope_label} — Store Dashboard",
+        f"Customer intelligence, entry, and management for {scope_label} ({store_cat})",
+        store_icon(scope_label),
     )
 
     my_df = db.load_customers_df(store_id=st.session_state["store_id"])
 
-    if my_df.empty:
+    # Compute baseline clustering across the mall to profile this store's shoppers
+    all_mall_df = db.load_customers_df()
+    X_raw, X_fit, _ = prepare_features(all_mall_df, [INCOME_COL, SCORE_COL])
+    labels, centers, _ = run_kmeans(X_fit, 5)
+    df_seg, profile_df = build_profiles(all_mall_df, labels, centers)
+    color_map = {row["Segment"]: row["Color"] for _, row in profile_df.iterrows()}
+
+    if not my_df.empty:
+        store_seg = df_seg[df_seg[STORE_COL] == scope_label]
+        dom_seg = store_seg["Segment"].value_counts().index[0] if not store_seg.empty else "Standard"
         ui.tiles(
-            [("Records", "0", "No shoppers yet"),
-             ("Avg Income (k$)", "—", "Awaiting data"),
-             ("Avg Spend Score", "—", "Awaiting data")],
-            accent=store_color(scope_label),
+            [
+                ("Shoppers", f"{len(my_df)}", f"Saved in {scope_label}"),
+                ("Avg Income", f"${my_df[INCOME_COL].mean():.1f}k", "Shopper purchasing power"),
+                ("Avg Spend Score", f"{my_df[SCORE_COL].mean():.1f}", "1–100 scale"),
+                ("Top Segment", dom_seg, "Dominant persona"),
+            ],
+            accent=accent_color,
         )
     else:
         ui.tiles(
             [
-                ("Records", f"{len(my_df)}", "Saved to the mall database"),
-                ("Avg Income (k$)", f"{my_df[INCOME_COL].mean():.1f}", "Across your shoppers"),
-                ("Avg Spend Score", f"{my_df[SCORE_COL].mean():.1f}", "1–100 scale"),
+                ("Shoppers", "0", "No shoppers yet"),
+                ("Avg Income", "—", "Awaiting data"),
+                ("Avg Spend Score", "—", "Awaiting data"),
+                ("Top Segment", "—", "Awaiting data"),
             ],
-            accent=store_color(scope_label),
+            accent=accent_color,
         )
 
-    ui.note(
-        "Enter each customer by hand — no spreadsheets for stores. "
-        "The mall owner sees these records in the overall-mall view."
-    )
     st.write("")
 
-    with st.form("manual_entry", clear_on_submit=True):
-        st.markdown("##### New customer record")
-        c1, c2, c3 = st.columns(3)
-        gender = c1.selectbox("Gender", ["Female", "Male", "Other"])
-        age = c2.number_input("Age", min_value=1, max_value=120, value=30, step=1)
-        income = c3.number_input(
-            "Annual Income (k$)", min_value=0.0, max_value=500.0, value=50.0, step=1.0
+    # Balanced 4-column quick customer entry card
+    with st.expander("➕ **Add New Customer Record**", expanded=True):
+        st.markdown(
+            f"<div style='color:#6B7280;font-size:0.85rem;margin-bottom:0.75rem'>"
+            f"Enter customer details from in-store visits. Records are saved instantly to <b>{scope_label}</b>.</div>",
+            unsafe_allow_html=True,
         )
-        c4, c5 = st.columns([1, 2])
-        score = c4.number_input(
-            "Spending Score (1-100)", min_value=0.0, max_value=100.0, value=50.0, step=1.0
-        )
-        submitted = c5.form_submit_button("➕ Add customer", width="stretch")
-
-        if submitted:
-            db.add_customer(
-                store_id=st.session_state["store_id"],
-                gender=gender,
-                age=age,
-                annual_income=income,
-                spending_score=score,
-                entered_by=st.session_state.get("email"),
+        with st.form("manual_entry", clear_on_submit=True):
+            c1, c2, c3, c4 = st.columns(4)
+            gender = c1.selectbox("Gender", ["Female", "Male", "Other"])
+            age = c2.number_input("Age", min_value=1, max_value=120, value=28, step=1)
+            income = c3.number_input(
+                "Annual Income (k$)", min_value=0.0, max_value=500.0, value=65.0, step=1.0
             )
-            st.success(f"Added 1 customer for **{scope_label}**.")
-            st.rerun()
+            score = c4.number_input(
+                "Spending Score (1-100)", min_value=0.0, max_value=100.0, value=60.0, step=1.0
+            )
+            submitted = st.form_submit_button("💾 Save Customer Record", type="primary", width="stretch")
 
+            if submitted:
+                db.add_customer(
+                    store_id=st.session_state["store_id"],
+                    gender=gender,
+                    age=age,
+                    annual_income=income,
+                    spending_score=score,
+                    entered_by=st.session_state.get("email"),
+                )
+                st.success(f"Customer record saved successfully for **{scope_label}**!")
+                st.rerun()
+
+    # In-store Visual Analytics if records exist
+    if not my_df.empty:
+        store_seg = df_seg[df_seg[STORE_COL] == scope_label]
+        if not store_seg.empty:
+            st.write("")
+            ui.section("Store Customer Intelligence", f"Live behavioral segmentation for {scope_label}", "📊")
+            
+            sc1, sc2 = st.columns(2)
+            with sc1:
+                fig_pos = go.Figure()
+                other_df = df_seg[df_seg[STORE_COL] != scope_label]
+                fig_pos.add_trace(go.Scatter(
+                    x=other_df[INCOME_COL],
+                    y=other_df[SCORE_COL],
+                    mode="markers",
+                    marker=dict(size=6, color="#e5e7eb", opacity=0.4),
+                    name="Mall Shoppers",
+                    hoverinfo="skip",
+                ))
+                for s_name, s_col in color_map.items():
+                    sub = store_seg[store_seg["Segment"] == s_name]
+                    if not sub.empty:
+                        fig_pos.add_trace(go.Scatter(
+                            x=sub[INCOME_COL],
+                            y=sub[SCORE_COL],
+                            mode="markers",
+                            marker=dict(size=11, color=s_col, line=dict(width=1, color="black")),
+                            name=s_name,
+                        ))
+                fig_pos.update_layout(
+                    title=f"Your Shoppers vs. Entire Mall",
+                    xaxis_title=INCOME_COL,
+                    yaxis_title=SCORE_COL,
+                    plot_bgcolor="#f9f9f9",
+                    legend_title="Segment",
+                )
+                st.plotly_chart(fig_pos, width="stretch")
+
+            with sc2:
+                seg_counts = store_seg["Segment"].value_counts().reset_index()
+                seg_counts.columns = ["Segment", "Count"]
+                fig_seg = px.pie(
+                    seg_counts,
+                    names="Segment",
+                    values="Count",
+                    title="Shopper Segment Breakdown",
+                    hole=0.45,
+                    color="Segment",
+                    color_discrete_map=color_map,
+                )
+                fig_seg.update_traces(textinfo="percent+label")
+                st.plotly_chart(fig_seg, width="stretch")
+
+            dom_seg = store_seg["Segment"].value_counts().index[0]
+            dom_pct = round((store_seg["Segment"].value_counts().iloc[0] / len(store_seg)) * 100, 1)
+            st.info(
+                f"💡 **Dominant Shopper Group:** `{dom_seg}` ({dom_pct}% of your store's footfall)\n\n"
+                f"**Recommended Strategy for {scope_label}:** {meta.get('strategy', 'Analyze shopper frequency and deliver personalized rewards.')}"
+            )
+
+    # Customer Records Table & Actions
     st.write("")
-    ui.section("Your Customer Records", f"{len(my_df)} record(s) in {scope_label}", "📋")
+    ui.section("Your Customer Records", f"{len(my_df)} record(s) logged in {scope_label}", "📋")
 
     if my_df.empty:
-        st.info("No records yet. Add your first customer above.")
+        st.info("No records logged yet. Add your first customer using the form above.")
     else:
-        st.dataframe(my_df, width="stretch", height=340)
+        st.dataframe(my_df, width="stretch", height=320)
 
-        st.markdown("##### Remove a record")
-        options = {
-            f"#{int(r['CustomerID'])} · {r[GENDER_COL]}, {int(r[AGE_COL])}y, "
-            f"${r[INCOME_COL]:.0f}k, score {r[SCORE_COL]:.0f}": int(r["CustomerID"])
-            for _, r in my_df.iterrows()
-        }
-        d1, d2 = st.columns([3, 1], vertical_alignment="bottom")
-        pick = d1.selectbox("Select a record to remove", list(options.keys()))
-        if d2.button("🗑️ Delete", width="stretch"):
-            if db.delete_customer(options[pick], store_id=st.session_state["store_id"]):
-                st.success("Record deleted.")
-                st.rerun()
-            else:
-                st.error("Could not delete that record.")
+        c_dl, c_del = st.columns([1, 1], vertical_alignment="bottom")
+        with c_dl:
+            csv_data = my_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                f"📥 Download {scope_label} Shoppers (CSV)",
+                data=csv_data,
+                file_name=f"{scope_label.lower().replace(' ', '_')}_customers.csv",
+                mime="text/csv",
+                width="stretch",
+            )
+
+        with c_del:
+            options = {
+                f"#{int(r['CustomerID'])} · {r[GENDER_COL]}, {int(r[AGE_COL])}y, "
+                f"${r[INCOME_COL]:.0f}k, score {r[SCORE_COL]:.0f}": int(r["CustomerID"])
+                for _, r in my_df.iterrows()
+            }
+            pick = st.selectbox("Select record to remove", list(options.keys()), label_visibility="collapsed")
+            if st.button("🗑️ Delete Selected Record", width="stretch"):
+                if db.delete_customer(options[pick], store_id=st.session_state["store_id"]):
+                    st.success("Record deleted successfully.")
+                    st.rerun()
+                else:
+                    st.error("Could not delete record.")
 
 
 # ─── Page 8: Store Management (admin only) ───────────────────────────────────

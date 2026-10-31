@@ -167,7 +167,7 @@ hr { border-color: var(--mz-line) !important; opacity: .9; }
 }
 
 /* ---- stat tiles ----------------------------------------------------- */
-.mz-tiles { display: grid; gap: .85rem; grid-template-columns: repeat(3, 1fr); margin: .2rem 0 .9rem; }
+.mz-tiles { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: .2rem 0 .9rem; }
 .mz-tile {
     background: var(--mz-card);
     border: 1px solid var(--mz-line);
@@ -243,12 +243,10 @@ def section(title: str, subtitle: str = "", icon: str = "✨") -> None:
     """Heading block with an icon chip, replacing the plain markdown header."""
     sub = f"<div class='mz-sec-sub'>{html.escape(subtitle)}</div>" if subtitle else ""
     st.markdown(
-        f"""
-        <div class="mz-sec">
-            <div class="mz-sec-icon">{icon}</div>
-            <div><h2>{html.escape(title)}</h2>{sub}</div>
-        </div>
-        """,
+        f'<div class="mz-sec">'
+        f'<div class="mz-sec-icon">{icon}</div>'
+        f'<div><h2>{html.escape(title)}</h2>{sub}</div>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -256,16 +254,14 @@ def section(title: str, subtitle: str = "", icon: str = "✨") -> None:
 def tiles(items: list[tuple[str, str, str]], accent: str = ACCENT) -> None:
     """Row of metric tiles: (label, value, hint)."""
     cells = "".join(
-        f"""
-        <div class="mz-tile" style="border-left-color:{accent};animation-delay:{i * 70}ms">
-            <div class="mz-tile-label">{html.escape(label)}</div>
-            <div class="mz-tile-value">{html.escape(str(value))}</div>
-            <div class="mz-tile-hint">{html.escape(hint)}</div>
-        </div>
-        """
+        f'<div class="mz-tile" style="border-left-color:{accent};animation-delay:{i * 70}ms">'
+        f'<div class="mz-tile-label">{html.escape(label)}</div>'
+        f'<div class="mz-tile-value">{html.escape(str(value))}</div>'
+        f'<div class="mz-tile-hint">{html.escape(hint)}</div>'
+        f'</div>'
         for i, (label, value, hint) in enumerate(items)
     )
-    st.markdown(f"<div class='mz-tiles'>{cells}</div>", unsafe_allow_html=True)
+    st.markdown(f'<div class="mz-tiles">{cells}</div>', unsafe_allow_html=True)
 
 
 def status_pill(status: str) -> str:
@@ -291,20 +287,14 @@ def store_card(
 ) -> None:
     """Compact store summary row used in the management roster."""
     st.markdown(
-        f"""
-        <div class="mz-store" style="animation-delay:{delay}ms">
-            <div class="mz-avatar" style="background:linear-gradient(135deg,{color},{color}cc)">{icon}</div>
-            <div>
-                <div class="mz-store-name">{html.escape(name)}</div>
-                <div class="mz-store-meta">{html.escape(meta)}</div>
-            </div>
-            <div class="mz-store-right">
-                <div class="mz-store-count">{count}</div>
-                <div class="mz-store-meta">{html.escape(count_label)}</div>
-                <div style="margin-top:.3rem">{status_pill(status)}</div>
-            </div>
-        </div>
-        """,
+        f'<div class="mz-store" style="animation-delay:{delay}ms">'
+        f'<div class="mz-avatar" style="background:linear-gradient(135deg,{color},{color}cc)">{icon}</div>'
+        f'<div><div class="mz-store-name">{html.escape(name)}</div>'
+        f'<div class="mz-store-meta">{html.escape(meta)}</div></div>'
+        f'<div class="mz-store-right"><div class="mz-store-count">{count}</div>'
+        f'<div class="mz-store-meta">{html.escape(count_label)}</div>'
+        f'<div style="margin-top:.3rem">{status_pill(status)}</div></div>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -534,19 +524,17 @@ def auth_showcase(stats: list[tuple[str, str]] | None = None) -> None:
         ) + "</div>"
 
     st.markdown(
-        f"""
-        <div class="mz-auth">
-            <div class="mz-auth-brand"><span class="mz-mark">◆</span> Mall Segment</div>
-            <div class="mz-auth-kicker">KZ-ML-03 · Multi-tenant retail intelligence</div>
-            <h1 class="mz-auth-title">One mall.<br>Every store, <em>its own story</em>.</h1>
-            <p class="mz-auth-lede">
-                Segment shoppers with K-Means, compare every tenant side by side,
-                and let each store run its own analytics — all from one place.
-            </p>
-            <ul class="mz-auth-list">{rows}</ul>
-            {stat_html}
-        </div>
-        """,
+        f'<div class="mz-auth">'
+        f'<div class="mz-auth-brand"><span class="mz-mark">◆</span> Mall Segment</div>'
+        f'<div class="mz-auth-kicker">KZ-ML-03 · Multi-tenant retail intelligence</div>'
+        f'<h1 class="mz-auth-title">One mall.<br>Every store, <em>its own story</em>.</h1>'
+        f'<p class="mz-auth-lede">'
+        f'Segment shoppers with K-Means, compare every tenant side by side, '
+        f'and let each store run its own analytics — all from one place.'
+        f'</p>'
+        f'<ul class="mz-auth-list">{rows}</ul>'
+        f'{stat_html}'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -609,21 +597,17 @@ def auth_demo_panel(rows: list[tuple[str, str, str, str]]) -> None:
     """Dev-only panel listing working demo logins: (role, hint, email, password)."""
     st.markdown(_DEMO_CSS, unsafe_allow_html=True)
     items = "".join(
-        f"""
-        <div class="mz-demo-row">
-            <div class="mz-demo-role">{html.escape(role)}<span>{html.escape(hint)}</span></div>
-            <div class="mz-demo-creds"><b>{html.escape(email)}</b><br>{html.escape(pw)}</div>
-        </div>
-        """
+        f'<div class="mz-demo-row">'
+        f'<div class="mz-demo-role">{html.escape(role)}<span>{html.escape(hint)}</span></div>'
+        f'<div class="mz-demo-creds"><b>{html.escape(email)}</b><br>{html.escape(pw)}</div>'
+        f'</div>'
         for role, hint, email, pw in rows
     )
     st.markdown(
-        f"""
-        <div class="mz-demo">
-            <div class="mz-demo-tag"><i></i>Demo credentials</div>
-            <div class="mz-demo-note">Shown on this deployment only — never rendered in production.</div>
-            {items}
-        </div>
-        """,
+        f'<div class="mz-demo">'
+        f'<div class="mz-demo-tag"><i></i>Demo credentials</div>'
+        f'<div class="mz-demo-note">Click or copy any demo account below to sign in:</div>'
+        f'{items}'
+        f'</div>',
         unsafe_allow_html=True,
     )
