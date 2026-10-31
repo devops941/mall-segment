@@ -1,4 +1,4 @@
-# KZ-ML-03 Mall Customer Segmentation — vibrant locked light theme
+# KZ-ML-03 Mall Customer Segmentation — Clean Modern Light Theme
 
 [theme]
 base = "light"
@@ -7,7 +7,7 @@ headingFont = "'Inter':https://fonts.googleapis.com/css2?family=Inter:wght@700;8
 codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
 baseFontSize = 14
 baseFontWeight = 400
-headingFontSizes = ["30px", "24px", "20px", "16px", "14px", "12px"]
+headingFontSizes = ["28px", "22px", "18px", "15px", "13px", "12px"]
 headingFontWeights = [700, 700, 600, 600, 500, 500]
 codeFontSize = "0.85rem"
 baseRadius = "8px"
@@ -15,65 +15,65 @@ buttonRadius = "8px"
 showWidgetBorder = true
 showSidebarBorder = true
 linkUnderline = false
-paddingTop = "2.5rem"
+paddingTop = "2rem"
 paddingBottom = "2rem"
 
-primaryColor = "#7C3AED"
-backgroundColor = "#FAFAFA"
-secondaryBackgroundColor = "#F0E9FF"
-textColor = "#1A1033"
-linkColor = "#7C3AED"
-borderColor = "#D8B4FE"
-codeTextColor = "#6D28D9"
-codeBackgroundColor = "#EDE9FE"
+primaryColor = "#4F46E5"
+backgroundColor = "#F8FAFC"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#0F172A"
+linkColor = "#4F46E5"
+borderColor = "#E2E8F0"
+codeTextColor = "#4338CA"
+codeBackgroundColor = "#F1F5F9"
 
 redColor    = "#EF4444"
 orangeColor = "#F97316"
 yellowColor = "#EAB308"
-greenColor  = "#22C55E"
+greenColor  = "#10B981"
 blueColor   = "#3B82F6"
-violetColor = "#7C3AED"
-grayColor   = "#6B7280"
+violetColor = "#6366F1"
+grayColor   = "#64748B"
 
-# Chart palettes — aligned with PALETTE in utils/ui.py
+# Chart palettes
 chartCategoricalColors = [
-    "#EF4444",
-    "#3B82F6",
-    "#22C55E",
-    "#F97316",
-    "#7C3AED",
+    "#4F46E5",
     "#06B6D4",
+    "#10B981",
+    "#F59E0B",
     "#EC4899",
-    "#EAB308",
+    "#8B5CF6",
+    "#3B82F6",
+    "#14B8A6",
 ]
 chartSequentialColors = [
-    "#F5F3FF",
-    "#EDE9FE",
-    "#DDD6FE",
-    "#C4B5FD",
-    "#A78BFA",
-    "#8B5CF6",
-    "#7C3AED",
-    "#6D28D9",
-    "#5B21B6",
-    "#4C1D95",
+    "#EEF2FF",
+    "#E0E7FF",
+    "#C7D2FE",
+    "#A5B4FC",
+    "#818CF8",
+    "#6366F1",
+    "#4F46E5",
+    "#4338CA",
+    "#3730A3",
+    "#312E81",
 ]
 
-dataframeBorderColor          = "#D8B4FE"
-dataframeHeaderBackgroundColor = "#7C3AED"
-dataframeHeaderTextColor       = "#FFFFFF"
+dataframeBorderColor          = "#E2E8F0"
+dataframeHeaderBackgroundColor = "#F8FAFC"
+dataframeHeaderTextColor       = "#0F172A"
 
-metricValueFontSize   = "2rem"
+metricValueFontSize   = "1.9rem"
 metricValueFontWeight = 700
 
 [theme.sidebar]
-backgroundColor          = "#1A1033"
-secondaryBackgroundColor = "#2D1B5C"
-codeBackgroundColor      = "#2D1B5C"
-textColor                = "#F5F3FF"
-borderColor              = "#4C1D95"
-primaryColor             = "#A78BFA"
-linkColor                = "#C4B5FD"
+backgroundColor          = "#FFFFFF"
+secondaryBackgroundColor = "#F8FAFC"
+codeBackgroundColor      = "#F1F5F9"
+textColor                = "#0F172A"
+borderColor              = "#E2E8F0"
+primaryColor             = "#4F46E5"
+linkColor                = "#4F46E5"
 showWidgetBorder         = true
 paddingTop               = "0.5rem"
 paddingBottom            = "1.5rem"

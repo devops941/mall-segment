@@ -83,7 +83,7 @@ class Store(Base):
     email = Column(String(200), unique=True, nullable=False)
     category = Column(String(120), default="General")
     icon = Column(String(16), default="🛍️")
-    color = Column(String(16), default="#7C3AED")
+    color = Column(String(16), default="#4F46E5")
     password_hash = Column(String(200), nullable=True)
     status = Column(String(20), nullable=False, default="pending")
     created_by = Column(String(20), default="self")
@@ -365,7 +365,7 @@ def create_store(
     email: str,
     category: str = "General",
     icon: str = "🛍️",
-    color: str = "#7C3AED",
+    color: str = "#4F46E5",
     password: str | None = None,
     status: str = "pending",
     created_by: str = "self",
@@ -380,7 +380,7 @@ def create_store(
             email=email.strip().lower(),
             category=category or "General",
             icon=icon or "🛍️",
-            color=color or "#7C3AED",
+            color=color or "#4F46E5",
             password_hash=hash_password(pw),
             status=status,
             created_by=created_by,

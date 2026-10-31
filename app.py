@@ -68,7 +68,7 @@ STORE_PAGES = [
 ]
 
 # Colour per store for charts, falling back to the tenant metadata.
-def store_color(name: str, fallback: str = "#7C3AED") -> str:
+def store_color(name: str, fallback: str = "#4F46E5") -> str:
     return STORE_METADATA.get(name, {}).get("color", fallback)
 
 
@@ -199,9 +199,9 @@ def render_login() -> None:
 
         with tab_reg:
             st.markdown(
-                "<h5 style=\"font-family:'Fraunces',serif;color:#fff;margin:0 0 .2rem\">"
+                "<h5 style=\"font-family:'Plus Jakarta Sans',sans-serif;color:#0F172A;font-weight:700;margin:0 0 .2rem\">"
                 "Register your store</h5>"
-                "<div style='color:#A79FC7;font-size:.82rem;margin-bottom:1rem'>"
+                "<div style='color:#64748B;font-size:.82rem;margin-bottom:1rem'>"
                 "The mall owner reviews and approves your request.</div>",
                 unsafe_allow_html=True,
             )
@@ -232,7 +232,7 @@ def render_login() -> None:
                             email=email,
                             category=category,
                             icon="🛍️",
-                            color="#7C3AED",
+                            color="#4F46E5",
                             password=password,
                             status="pending",
                             created_by="self",
@@ -297,7 +297,7 @@ if is_store:
 # ─── Sidebar ─────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
-        "<div class='mz-kicker' style='color:#C4B5FD;font:600 .68rem/1 Inter,sans-serif;"
+        "<div class='mz-kicker' style='color:#4F46E5;font:700 .72rem/1 Inter,sans-serif;"
         "letter-spacing:.22em;text-transform:uppercase'>KZ-ML-03</div>",
         unsafe_allow_html=True,
     )
@@ -735,7 +735,7 @@ elif nav == "Store Analytics":
             footfall_df = df_seg[STORE_COL].value_counts().reset_index()
             footfall_df.columns = ["Store", "Customer Count"]
             store_color_seq = [
-                STORE_METADATA.get(s, {}).get("color", "#7C3AED") for s in footfall_df["Store"]
+                STORE_METADATA.get(s, {}).get("color", "#4F46E5") for s in footfall_df["Store"]
             ]
 
             fig_footfall = px.bar(
@@ -850,7 +850,7 @@ elif nav == "Store Analytics":
             # Admin-created stores are not in the static metadata; derive from data.
             meta = {
                 "icon": "🛍️",
-                "color": "#7C3AED",
+                "color": "#4F46E5",
                 "category": store_df[CAT_COL].iloc[0] if CAT_COL in store_df else "Retail",
                 "strategy": "Analyze shopper frequency and deliver personalized rewards.",
             }
@@ -858,7 +858,7 @@ elif nav == "Store Analytics":
         st.markdown(
             f"### {meta.get('icon', '🛍️')} {curr_store} -- Store Deep-Dive Analytics"
         )
-        st.caption(f"**Category:** {meta.get('category', 'Retail')}  |  **Store Color Code:** `{meta.get('color', '#7C3AED')}`")
+        st.caption(f"**Category:** {meta.get('category', 'Retail')}  |  **Store Color Code:** `{meta.get('color', '#4F46E5')}`")
 
         # Store-Specific KPI Cards
         skpi1, skpi2, skpi3, skpi4 = st.columns(4)
@@ -939,7 +939,7 @@ elif nav == "Store Analytics":
                 x=AGE_COL,
                 nbins=12,
                 title=f"{curr_store} Customer Age Distribution",
-                color_discrete_sequence=[meta.get("color", "#7C3AED")],
+                color_discrete_sequence=[meta.get("color", "#4F46E5")],
                 labels={AGE_COL: "Age"},
             )
             fig_age.add_vline(
@@ -1230,7 +1230,7 @@ elif nav == "Store Management":
         new_email = c2.text_input("Store login email", placeholder="store@example.com")
         c3, c4 = st.columns(2)
         new_cat = c3.text_input("Category", value="General")
-        new_color = c4.color_picker("Chart colour", value="#7C3AED")
+        new_color = c4.color_picker("Chart colour", value="#4F46E5")
         if st.form_submit_button("Create store & email credentials", width="stretch"):
             if not new_name.strip() or not new_email.strip():
                 st.error("Store name and login email are required.")

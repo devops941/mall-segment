@@ -7,7 +7,7 @@ STORE_METADATA = {
     "Apple Store": {
         "category": "Electronics",
         "icon": "🍎",
-        "color": "#7C3AED",
+        "color": "#4F46E5",
         "strategy": (
             "Focus on premium flagship trade-ins, VIP pre-order experiences, and high-margin ecosystem "
             "accessories. Target tech-forward, high-income customers with personalized concierge demos."
