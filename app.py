@@ -51,7 +51,7 @@ def section_header(title: str, icon: str = "") -> None:
 
 # Sidebar
 with st.sidebar:
-    st.title("KZ-ML-03")
+    st.title("Mall Segment")
     st.caption("Mall Customer Segmentation & Tenant Analytics")
     st.divider()
 
