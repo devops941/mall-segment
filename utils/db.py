@@ -44,6 +44,18 @@ CUSTOMER_COLUMNS = [
 STORE_STATUSES = ("pending", "approved", "rejected", "disabled")
 
 
+def _get_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key, "")
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and key in st.secrets:
+                val = str(st.secrets[key])
+        except Exception:
+            pass
+    return (val or default).strip()
+
+
 def _normalize_url(url: str) -> str:
     # SQLAlchemy 2.x defaults to the psycopg3 driver; the URL points at psycopg2.
     if url.startswith("postgresql://"):
@@ -51,7 +63,15 @@ def _normalize_url(url: str) -> str:
     return url
 
 
-DATABASE_URL = _normalize_url(os.getenv("DATABASE_URL", ""))
+def get_database_url() -> str:
+    url = _get_secret("DATABASE_URL", "")
+    if not url:
+        db_path = _ROOT / "mall_segment.db"
+        url = f"sqlite:///{db_path}"
+    return _normalize_url(url)
+
+
+DATABASE_URL = get_database_url()
 Base = declarative_base()
 
 
@@ -95,11 +115,13 @@ _SessionLocal = None
 def get_engine():
     global _engine
     if _engine is None:
-        if not DATABASE_URL:
-            raise RuntimeError("DATABASE_URL is not configured (check .env).")
-        _engine = create_engine(
-            DATABASE_URL, pool_pre_ping=True, connect_args={"connect_timeout": 20}
-        )
+        url = get_database_url()
+        if url.startswith("sqlite"):
+            _engine = create_engine(url, connect_args={"check_same_thread": False})
+        else:
+            _engine = create_engine(
+                url, pool_pre_ping=True, connect_args={"connect_timeout": 20}
+            )
     return _engine
 
 

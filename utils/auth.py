@@ -15,12 +15,24 @@ from dotenv import load_dotenv
 
 load_dotenv(pathlib.Path(__file__).resolve().parent.parent / ".env")
 
-JWT_SECRET = os.getenv("JWT_SECRET", "insecure-dev-secret")
+def _get_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key, "")
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and key in st.secrets:
+                val = str(st.secrets[key])
+        except Exception:
+            pass
+    return (val or default).strip()
+
+
+JWT_SECRET = _get_secret("JWT_SECRET", "insecure-dev-secret")
 JWT_ALGORITHM = "HS256"
 TOKEN_TTL_HOURS = 12
 
-ADMIN_EMAIL = (os.getenv("ADMIN_EMAIL") or "").strip().lower()
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD") or ""
+ADMIN_EMAIL = _get_secret("ADMIN_EMAIL", "").lower()
+ADMIN_PASSWORD = _get_secret("ADMIN_PASSWORD", "")
 
 
 def hash_password(password: str) -> str:
